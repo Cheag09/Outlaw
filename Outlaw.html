@@ -1,0 +1,178 @@
+<!-- Input form with fields for data entry -->
+<form id="dataForm">
+    <label for="locationName">Location Name:</label>
+    <input type="text" id="locationName" name="locationName"><br><br>
+
+    <label for="cash">Cash:</label>
+    <input type="number" id="cash" name="cash" step="0.01"><br><br>
+
+    <label for="cashOrderCount">Cash Order Count:</label>
+    <input type="number" id="cashOrderCount" name="cashOrderCount"><br><br>
+
+    <label for="credit">Credit:</label>
+    <input type="number" id="credit" name="credit" step="0.01"><br><br>
+
+    <label for="creditOrderCount">Credit Order Count:</label>
+    <input type="number" id="creditOrderCount" name="creditOrderCount"><br><br>
+
+    <label for="tax">Tax:</label>
+    <input type="number" id="tax" name="tax" step="0.01"><br><br>
+
+    <label for="tips">Tips:</label>
+    <input type="number" id="tips" name="tips" step="0.01"><br><br>
+
+    <label for="refund">Refund:</label>
+    <input type="number" id="refund" name="refund" step="0.01"><br><br>
+
+    <label for="total">Total:</label>
+    <input type="number" id="total" name="total" step="0.01"><br><br>
+
+    <button type="button" onclick="addData()">Add Entry</button>
+    <button type="button" onclick="resetDay()">Reset Day</button>
+</form>
+
+<br>
+<button onclick="exportCSV()">Export to CSV</button>
+
+<!-- Table to display current entry history -->
+<h3>Current Day Entries</h3>
+<table border="1" id="entryTable">
+    <thead>
+        <tr>
+            <th>Location Name</th>
+            <th>Cash</th>
+            <th>Cash Order Count</th>
+            <th>Credit</th>
+            <th>Credit Order Count</th>
+            <th>Tax</th>
+            <th>Tips</th>
+            <th>Refund</th> <!-- Moved Refund here -->
+            <th>Total</th>   <!-- Moved Total here -->
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Rows will be added here dynamically -->
+    </tbody>
+</table>
+
+<!-- Section to display past days' entries -->
+<h3>History of Previous Days</h3>
+<div id="historySection">
+    <!-- History entries will be displayed here -->
+</div>
+
+<script>
+    // Initialize arrays to store entries
+    let entries = [];
+    let currentLocationName = "";
+
+    // Function to add data to the entries array and display it in the current day table
+    function addData() {
+        const locationName = document.getElementById("locationName").value.trim();
+        const cash = document.getElementById("cash").value;
+        const cashOrderCount = document.getElementById("cashOrderCount").value;
+        const credit = document.getElementById("credit").value;
+        const creditOrderCount = document.getElementById("creditOrderCount").value;
+        const tax = document.getElementById("tax").value;
+        const tips = document.getElementById("tips").value;
+        const refund = document.getElementById("refund").value; // No change
+        const total = document.getElementById("total").value;   // No change
+
+        // If the location name is different, add a separator row
+        if (locationName !== currentLocationName) {
+            entries.push({ locationName, headerRow: true });
+            currentLocationName = locationName;
+        }
+
+        // Add the entry to the entries array
+        const entry = { locationName, cash, cashOrderCount, credit, creditOrderCount, tax, tips, refund, total }; // Changed order
+        entries.push(entry);
+
+        // Display the entry in the table
+        const table = document.getElementById("entryTable").getElementsByTagName('tbody')[0];
+        const newRow = table.insertRow();
+        [locationName, cash, cashOrderCount, credit, creditOrderCount, tax, tips, refund, total].forEach(value => {
+            const cell = newRow.insertCell();
+            cell.textContent = value;
+        });
+
+        // Clear form fields after submission
+        document.getElementById("dataForm").reset();
+        alert("Entry added!");
+    }
+
+    // Function to reset the day's entries, move them to history, and start a new day
+    function resetDay() {
+        if (entries.length === 0) {
+            alert("No entries to reset!");
+            return;
+        }
+
+        // Store current day entries in history
+        const historySection = document.getElementById("historySection");
+        const dayContainer = document.createElement("div");
+        dayContainer.innerHTML = `<h4>Previous Day's Entries</h4>`;
+        const dayTable = document.createElement("table");
+        dayTable.border = "1";
+
+        // Set up table headers
+        const headers = ["Location Name", "Cash", "Cash Order Count", "Credit", "Credit Order Count", "Tax", "Tips", "Refund", "Total"]; // Changed order
+        const headerRow = dayTable.insertRow();
+        headers.forEach(header => {
+            const cell = headerRow.insertCell();
+            cell.textContent = header;
+        });
+
+        // Populate table with previous entries
+        entries.forEach(entry => {
+            if (entry.headerRow) {
+                const separatorRow = dayTable.insertRow();
+                const separatorCell = separatorRow.insertCell();
+                separatorCell.colSpan = 9;
+                separatorCell.textContent = `Location: ${entry.locationName}`;
+                separatorCell.style.fontWeight = "bold";
+            } else {
+                const row = dayTable.insertRow();
+                [entry.locationName, entry.cash, entry.cashOrderCount, entry.credit, entry.creditOrderCount, entry.tax, entry.tips, entry.refund, entry.total].forEach(value => {
+                    const cell = row.insertCell();
+                    cell.textContent = value;
+                });
+            }
+        });
+
+        // Append the table to the day container and add to history section
+        dayContainer.appendChild(dayTable);
+        historySection.appendChild(dayContainer);
+
+        // Reset entries array and clear the current day table
+        entries = [];
+        currentLocationName = "";
+        document.getElementById("entryTable").getElementsByTagName('tbody')[0].innerHTML = "";
+        alert("Day reset! You can start entering new data.");
+    }
+
+    // Function to export entries to a CSV file with headers for each location
+    function exportCSV() {
+        if (entries.length === 0) {
+            alert("No data to export!");
+            return;
+        }
+
+        let csv = "Location Name,Cash,Cash Order Count,Credit,Credit Order Count,Tax,Tips,Refund,Total\n"; // Changed order
+
+        entries.forEach(entry => {
+            if (!entry.headerRow) {
+                csv += `${entry.locationName},${entry.cash},${entry.cashOrderCount},${entry.credit},${entry.creditOrderCount},${entry.tax},${entry.tips},${entry.refund},${entry.total}\n`; // Changed order
+            }
+        });
+
+        // Create a blob for the CSV file and trigger download
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.setAttribute("href", url);
+        a.setAttribute("download", "entries.csv");
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
